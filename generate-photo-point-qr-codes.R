@@ -50,15 +50,15 @@ photos_per_aspect <-
   data.frame(aspect = c("N", "S", "E", "W")) %>% 
   rowwise() %>% 
   dplyr::mutate(chalkboard_text = list(c(glue("p5m-{aspect}11"),
-                                  glue("{aspect}11"),
-                                  glue("{aspect}31"),
-                                  glue("{aspect}13"),
-                                  glue("{aspect}33"),
-                                  glue("{aspect}\n3x3\nGrid"),
-                                  glue("{aspect}\n10x10\nLow"),
-                                  glue("{aspect}\n10x10\nHigh"),
-                                  glue("p10m-{aspect}"),
-                                  glue("{aspect}22\nTemp Logger"))),
+                                         glue("{aspect}11"),
+                                         glue("{aspect}31"),
+                                         glue("{aspect}13"),
+                                         glue("{aspect}33"),
+                                         glue("{aspect}\n3x3\nGrid"),
+                                         glue("{aspect}\n10x10\nLow"),
+                                         glue("{aspect}\n10x10\nHigh"),
+                                         glue("p10m-{aspect}"),
+                                         glue("{aspect}22\nTemp Logger"))),
                 filename_text = list(c(glue("p5m-{aspect}11"),
                                        glue("{aspect}11-QU"),
                                        glue("{aspect}31-QU"),
@@ -68,9 +68,9 @@ photos_per_aspect <-
                                        glue("{aspect}\n10x10\nLow"),
                                        glue("{aspect}\n10x10\nHigh"),
                                        glue("p10m-{aspect}"),
-                                       glue("{aspect}22\nTemp Logger"))) %>%
+                                       glue("{aspect}22\nTemp Logger")))) %>%
   arrange(aspect) %>% 
-  tidyr::unnest(cols = photo_point_text) %>% 
+  tidyr::unnest(cols = c(chalkboard_text, filename_text)) %>% 
   as.data.frame()
 
 photos_per_aspect
