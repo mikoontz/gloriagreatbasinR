@@ -1,12 +1,16 @@
 library(dplyr)
 library(glue)
+library(tidyr)
+# devtools::install_github("hrbrmstr/qrencoder")
+library(qrencoder)
+library(ggplot2)
 
-https://github.com/hrbrmstr/qrencoder to generate the codes
-devtools::install_github("hrbrmstr/qrencoder")
+# https://github.com/hrbrmstr/qrencoder to generate the codes
 
-and https://github.com/brianwdavis/quadrangle to read them
-
-and https://cran.r-project.org/web/packages/exifr/index.html to get the time stamp from the photo’s metadata
+# 
+# and https://github.com/brianwdavis/quadrangle to read them
+# 
+# and https://cran.r-project.org/web/packages/exifr/index.html to get the time stamp from the photo’s metadata
 
 sites <- 
   data.frame(country_code = "US",
@@ -49,7 +53,7 @@ sites <-
 photos_per_aspect <- 
   data.frame(aspect = c("N", "S", "E", "W")) %>% 
   rowwise() %>% 
-  dplyr::mutate(chalkboard_text = list(c(glue("p5m-{aspect}11"),
+  dplyr::mutate(chalkboard_text_per_summit = list(c(glue("p5m-{aspect}11"),
                                          glue("{aspect}11"),
                                          glue("{aspect}31"),
                                          glue("{aspect}13"),
@@ -58,19 +62,57 @@ photos_per_aspect <-
                                          glue("{aspect}\n10x10\nLow"),
                                          glue("{aspect}\n10x10\nHigh"),
                                          glue("p10m-{aspect}"),
+                                         glue("{aspect}22\nTemp Logger"),
                                          glue("{aspect}22\nTemp Logger"))),
-                filename_text = list(c(glue("p5m-{aspect}11"),
+                filename_text_per_summit = list(c(glue("P5M-{aspect}11"),
                                        glue("{aspect}11-QU"),
                                        glue("{aspect}31-QU"),
                                        glue("{aspect}13-QU"),
                                        glue("{aspect}33-QU"),
                                        glue("CL-{aspect}"),
-                                       glue("{aspect}\n10x10\nLow"),
-                                       glue("{aspect}\n10x10\nHigh"),
-                                       glue("p10m-{aspect}"),
-                                       glue("{aspect}22\nTemp Logger")))) %>%
+                                       glue("{aspect}-10x10-LOW"),
+                                       glue("{aspect}-10x10-HIGH"),
+                                       glue("P10M-{aspect}"),
+                                       glue("{aspect}22-LOGC"),
+                                       glue("{aspect}22-LOGO")))) %>%
   arrange(aspect) %>% 
-  tidyr::unnest(cols = c(chalkboard_text, filename_text)) %>% 
-  as.data.frame()
+  tidyr::unnest(cols = c(chalkboard_text_per_summit, filename_text_per_summit)) 
 
-photos_per_aspect
+off_cardinal_photos <-
+  data.frame(aspect = c("NE", "SE", "SW", "NW")) %>% 
+  rowwise() %>% 
+  dplyr::mutate(chalkboard_text_per_summit = list(c(glue("p5m-{aspect}"), glue("p10m-{aspect}"))),
+                   filename_text_per_summit = list(c(glue("P5M-{aspect}"), glue("P10M-{aspect}")))) %>% 
+  arrange(aspect) %>% 
+  tidyr::unnest(cols = c(chalkboard_text_per_summit, filename_text_per_summit))
+
+
+photo_points_per_summit <-
+  data.frame(aspect = NA,
+           chalkboard_text_per_summit = "HSP",
+           filename_text_per_summit = "HSP") %>% 
+  rbind(photos_per_aspect, off_cardinal_photos)
+
+photo_points_all <-
+  sites %>% 
+  mutate(photo_points = list(photo_points_per_summit)) %>% 
+  tidyr::unnest(photo_points) %>% 
+  rowwise() %>% 
+  mutate(qr = list(qrencoder::qrencode_df(to_encode = glue("{country_code}_{tr}_{peak}_{filename_text_per_summit}"))))
+
+?qrencode_df
+
+set.seed(1404)
+example_qr <-
+  photo_points_all$qr[[sample(nrow(photo_points_all), 1)]] %>% 
+  as_tibble() %>% 
+  mutate(z = as.factor(z))
+
+example_qr
+
+ggplot(example_qr, aes(x, y, fill = z)) + 
+  geom_raster() + 
+  coord_fixed() + 
+  theme_void() +
+  guides(fill = FALSE) +
+  scale_fill_manual(values = c("white", "black"))
